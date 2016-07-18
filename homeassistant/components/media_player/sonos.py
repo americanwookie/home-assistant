@@ -127,9 +127,9 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
                            restore_service,
                            descriptions.get(SERVICE_RESTORE))
 
-    hass.service.register(DOMAIN, SERVICE_SET_TIMER,
-                          set_timer,
-                          descriptions.get(SERVICE_SET_TIMER))
+    hass.services.register(DOMAIN, SERVICE_SET_TIMER,
+                           set_timer_service,
+                           descriptions.get(SERVICE_SET_TIMER))
 
     return True
 
