@@ -37,6 +37,7 @@ SERVICE_GROUP_PLAYERS = 'sonos_group_players'
 SERVICE_UNJOIN = 'sonos_unjoin'
 SERVICE_SNAPSHOT = 'sonos_snapshot'
 SERVICE_RESTORE = 'sonos_restore'
+SERVICE_SET_TIMER = 'sonos_set_timer'
 
 
 # pylint: disable=unused-argument, too-many-locals
@@ -103,6 +104,10 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         """Restore a snapshot."""
         _apply_service(service, SonosDevice.restore)
 
+    def set_timer_service(service):
+        """Set a timer."""
+        _apply_service(service, SonosDevice.set_timer)
+
     descriptions = load_yaml_config_file(
         path.join(path.dirname(__file__), 'services.yaml'))
 
@@ -121,6 +126,10 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     hass.services.register(DOMAIN, SERVICE_RESTORE,
                            restore_service,
                            descriptions.get(SERVICE_RESTORE))
+
+    hass.service.register(DOMAIN, SERVICE_SET_TIMER,
+                          set_timer,
+                          descriptions.get(SERVICE_SET_TIMER))
 
     return True
 
@@ -362,6 +371,19 @@ class SonosDevice(MediaPlayerDevice):
     def restore(self):
         """Restore snapshot for the player."""
         self.soco_snapshot.restore(True)
+
+    @only_if_coordinator
+    def set_timer(self, sleep_time):
+        """Set the timer on the player"""
+        if sleep_time != '':
+            if int(sleep_time) > 86399:
+                raise ValueError("Can only set timers less than one day")
+            sleep_time = str(datetime.timedelta(seconds=int(sleep_time)))
+
+        self._player.avTransport.ConfigureSleepTimer([
+            ('InstanceID', 0),
+            ('NewSleepTimerDuration', sleep_time)
+        ])
 
     @property
     def available(self):
