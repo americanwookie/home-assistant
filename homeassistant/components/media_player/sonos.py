@@ -61,39 +61,6 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     """Setup the Sonos platform."""
     import soco
 
-    if discovery_info:
-        player = soco.SoCo(discovery_info)
-        if player.is_visible:
-            device=SonosDevice(hass, player)
-            devices.append(device)
-            add_devices([device])
-            register_services()
-            return True
-        return False
-
-    players = None
-    hosts = config.get('hosts', None)
-    if hosts:
-        # Support retro compatibility with comma separated list of hosts
-        # from config
-        hosts = hosts.split(',') if isinstance(hosts, str) else hosts
-        players = []
-        for host in hosts:
-            players.append(soco.SoCo(socket.gethostbyname(host)))
-
-    if not players:
-        players = soco.discover(interface_addr=config.get('interface_addr',
-                                                          None))
-
-    if not players:
-        _LOGGER.warning('No Sonos speakers found.')
-        return False
-
-    devices = [SonosDevice(hass, p) for p in players]
-    add_devices(devices)
-    register_services()
-    _LOGGER.info('Added %s Sonos speakers', len(players))
-
     def register_services():
         def _apply_service(service, service_func, *service_func_args):
             """Internal func for applying a service."""
@@ -158,6 +125,38 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
                                descriptions.get(SERVICE_SET_TIMER),
                                schema=SONOS_SET_TIMER_SCHEMA)
 
+    if discovery_info:
+        player = soco.SoCo(discovery_info)
+        if player.is_visible:
+            device=SonosDevice(hass, player)
+            devices.append(device)
+            add_devices([device])
+            register_services()
+            return True
+        return False
+
+    players = None
+    hosts = config.get('hosts', None)
+    if hosts:
+        # Support retro compatibility with comma separated list of hosts
+        # from config
+        hosts = hosts.split(',') if isinstance(hosts, str) else hosts
+        players = []
+        for host in hosts:
+            players.append(soco.SoCo(socket.gethostbyname(host)))
+
+    if not players:
+        players = soco.discover(interface_addr=config.get('interface_addr',
+                                                          None))
+
+    if not players:
+        _LOGGER.warning('No Sonos speakers found.')
+        return False
+
+    devices = [SonosDevice(hass, p) for p in players]
+    add_devices(devices)
+    register_services()
+    _LOGGER.info('Added %s Sonos speakers', len(players))
     return True
 
 
