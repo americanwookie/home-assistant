@@ -7,6 +7,7 @@ https://home-assistant.io/components/media_player.sonos/
 import datetime
 import logging
 import socket
+import voluptuous as vol
 from os import path
 
 from homeassistant.components.media_player import (
@@ -14,8 +15,10 @@ from homeassistant.components.media_player import (
     SUPPORT_PAUSE, SUPPORT_PLAY_MEDIA, SUPPORT_PREVIOUS_TRACK, SUPPORT_SEEK,
     SUPPORT_VOLUME_MUTE, SUPPORT_VOLUME_SET, MediaPlayerDevice)
 from homeassistant.const import (
-    STATE_IDLE, STATE_PAUSED, STATE_PLAYING, STATE_UNKNOWN, STATE_OFF)
+    STATE_IDLE, STATE_PAUSED, STATE_PLAYING, STATE_UNKNOWN, STATE_OFF,
+    ATTR_ENTITY_ID)
 from homeassistant.config import load_yaml_config_file
+import homeassistant.helpers.config_validation as cv
 
 REQUIREMENTS = ['SoCo==0.11.1']
 
@@ -38,6 +41,14 @@ SERVICE_UNJOIN = 'sonos_unjoin'
 SERVICE_SNAPSHOT = 'sonos_snapshot'
 SERVICE_RESTORE = 'sonos_restore'
 SERVICE_SET_TIMER = 'sonos_set_timer'
+
+ATTR_SLEEP_TIME = 'sleep_time'
+
+# Service call validation schemas
+SET_TIMER_SCHEMA = vol.Schema({
+    vol.Required(ATTR_ENTITY_ID): cv.entity_ids,
+    vol.Required(ATTR_SLEEP_TIME): cv.positive_int,
+})
 
 
 # pylint: disable=unused-argument, too-many-locals
@@ -106,7 +117,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
 
     def set_timer_service(service):
         """Set a timer."""
-        _apply_service(service, SonosDevice.set_timer)
+        _apply_service(service, SonosDevice.set_timer, service.data[ATTR_SLEEP_TIME])
 
     descriptions = load_yaml_config_file(
         path.join(path.dirname(__file__), 'services.yaml'))
@@ -129,7 +140,8 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
 
     hass.services.register(DOMAIN, SERVICE_SET_TIMER,
                            set_timer_service,
-                           descriptions.get(SERVICE_SET_TIMER))
+                           descriptions.get(SERVICE_SET_TIMER),
+                           schema=SET_TIMER_SCHEMA)
 
     return True
 
