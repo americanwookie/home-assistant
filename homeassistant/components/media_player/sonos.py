@@ -131,7 +131,8 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
             device=SonosDevice(hass, player)
             devices.append(device)
             add_devices([device])
-            register_services()
+            if len(devices) == 1:
+                register_services()
             return True
         return False
 
