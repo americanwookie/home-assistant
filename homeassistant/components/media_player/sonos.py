@@ -89,7 +89,7 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         """Internal func for applying a service."""
         entity_id = service.data.get('entity_id')
         #Short term hack to handle lists, once we have schemas everywhere, we'll always have a list
-        if type(entity_id) is string:
+        if type(entity_id) is str:
             entity_ids=[entity_id]
         else:
             entity_ids=entity_id
