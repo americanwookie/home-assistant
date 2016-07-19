@@ -60,9 +60,9 @@ devices=[]
 def setup_platform(hass, config, add_devices, discovery_info=None):
     """Setup the Sonos platform."""
     import soco
+    global devices
 
     def register_services():
-        global devices
         def _apply_service(service, service_func, *service_func_args):
             """Internal func for applying a service."""
             entity_id = service.data.get('entity_id')
