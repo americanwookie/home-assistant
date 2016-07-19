@@ -129,10 +129,10 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
         player = soco.SoCo(discovery_info)
         if player.is_visible:
             device=SonosDevice(hass, player)
-            devices.append(device)
             add_devices([device])
-            if len(devices) == 1:
+            if not devices:
                 register_services()
+            devices.append(device)
             return True
         return False
 
