@@ -53,6 +53,8 @@ SONOS_SET_TIMER_SCHEMA = SONOS_SCHEMA.extend({
     vol.Required(ATTR_SLEEP_TIME): cv.positive_int,
 })
 
+#List of devices that have been registered
+devices=[]
 
 # pylint: disable=unused-argument, too-many-locals
 def setup_platform(hass, config, add_devices, discovery_info=None):
@@ -62,9 +64,10 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     if discovery_info:
         player = soco.SoCo(discovery_info)
         if player.is_visible:
-            device=[SonosDevice(hass, player)]
-            add_devices(device)
-            register_servies(device)
+            device=SonosDevice(hass, player)
+            devices.append(device)
+            add_devices([device])
+            register_services()
             return True
         return False
 
@@ -88,10 +91,10 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
 
     devices = [SonosDevice(hass, p) for p in players]
     add_devices(devices)
-    register_servies(devices)
+    register_services()
     _LOGGER.info('Added %s Sonos speakers', len(players))
 
-    def register_services(devices):
+    def register_services():
         def _apply_service(service, service_func, *service_func_args):
             """Internal func for applying a service."""
             entity_id = service.data.get('entity_id')
