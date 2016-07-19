@@ -65,14 +65,9 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     def register_services():
         def _apply_service(service, service_func, *service_func_args):
             """Internal func for applying a service."""
-            entity_id = service.data.get('entity_id')
-            #Short term hack to handle lists, once we have schemas everywhere, we'll always have a list
-            if type(entity_id) is str:
-                entity_ids=[entity_id]
-            else:
-                entity_ids=entity_id
+            entity_ids = service.data.get('entity_id')
 
-            if entity_id:
+            if entity_ids:
                 _devices = [device for device in devices
                             if device.entity_id in entity_ids]
             else:
@@ -107,19 +102,23 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
 
         hass.services.register(DOMAIN, SERVICE_GROUP_PLAYERS,
                                group_players_service,
-                               descriptions.get(SERVICE_GROUP_PLAYERS))
+                               descriptions.get(SERVICE_GROUP_PLAYERS),
+                               schema=SONOS_SCHEMA)
 
         hass.services.register(DOMAIN, SERVICE_UNJOIN,
                                unjoin_service,
-                               descriptions.get(SERVICE_UNJOIN))
+                               descriptions.get(SERVICE_UNJOIN),
+                               schema=SONOS_SCHEMA)
 
         hass.services.register(DOMAIN, SERVICE_SNAPSHOT,
                                snapshot_service,
-                               descriptions.get(SERVICE_SNAPSHOT))
+                               descriptions.get(SERVICE_SNAPSHOT),
+                               schema=SONOS_SCHEMA)
 
         hass.services.register(DOMAIN, SERVICE_RESTORE,
                                restore_service,
-                               descriptions.get(SERVICE_RESTORE))
+                               descriptions.get(SERVICE_RESTORE),
+                               schema=SONOS_SCHEMA)
 
         hass.services.register(DOMAIN, SERVICE_SET_TIMER,
                                set_timer_service,
