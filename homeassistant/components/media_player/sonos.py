@@ -45,8 +45,11 @@ SERVICE_SET_TIMER = 'sonos_set_timer'
 ATTR_SLEEP_TIME = 'sleep_time'
 
 # Service call validation schemas
-SET_TIMER_SCHEMA = vol.Schema({
-    vol.Required(ATTR_ENTITY_ID): cv.entity_ids,
+SONOS_SCHEMA = vol.Schema({
+    ATTR_ENTITY_ID: cv.entity_ids,
+})
+
+SONOS_SET_TIMER_SCHEMA = SONOS_SCHEMA.extend({
     vol.Required(ATTR_SLEEP_TIME): cv.positive_int,
 })
 
@@ -59,7 +62,9 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
     if discovery_info:
         player = soco.SoCo(discovery_info)
         if player.is_visible:
-            add_devices([SonosDevice(hass, player)])
+            device=[SonosDevice(hass, player)]
+            add_devices(device)
+            register_servies(device)
             return True
         return False
 
@@ -83,70 +88,72 @@ def setup_platform(hass, config, add_devices, discovery_info=None):
 
     devices = [SonosDevice(hass, p) for p in players]
     add_devices(devices)
+    register_servies(devices)
     _LOGGER.info('Added %s Sonos speakers', len(players))
 
-    def _apply_service(service, service_func, *service_func_args):
-        """Internal func for applying a service."""
-        entity_id = service.data.get('entity_id')
-        #Short term hack to handle lists, once we have schemas everywhere, we'll always have a list
-        if type(entity_id) is str:
-            entity_ids=[entity_id]
-        else:
-            entity_ids=entity_id
+    def register_services(devices):
+        def _apply_service(service, service_func, *service_func_args):
+            """Internal func for applying a service."""
+            entity_id = service.data.get('entity_id')
+            #Short term hack to handle lists, once we have schemas everywhere, we'll always have a list
+            if type(entity_id) is str:
+                entity_ids=[entity_id]
+            else:
+                entity_ids=entity_id
 
-        if entity_id:
-            _devices = [device for device in devices
-                        if device.entity_id in entity_ids]
-        else:
-            _devices = devices
+            if entity_id:
+                _devices = [device for device in devices
+                            if device.entity_id in entity_ids]
+            else:
+                _devices = devices
+    
+            for device in _devices:
+                service_func(device, *service_func_args)
+                device.update_ha_state(True)
 
-        for device in _devices:
-            service_func(device, *service_func_args)
-            device.update_ha_state(True)
+        def group_players_service(service):
+            """Group media players, use player as coordinator."""
+            _apply_service(service, SonosDevice.group_players)
 
-    def group_players_service(service):
-        """Group media players, use player as coordinator."""
-        _apply_service(service, SonosDevice.group_players)
+        def unjoin_service(service):
+            """Unjoin the player from a group."""
+            _apply_service(service, SonosDevice.unjoin)
 
-    def unjoin_service(service):
-        """Unjoin the player from a group."""
-        _apply_service(service, SonosDevice.unjoin)
+        def snapshot_service(service):
+            """Take a snapshot."""
+            _apply_service(service, SonosDevice.snapshot)
 
-    def snapshot_service(service):
-        """Take a snapshot."""
-        _apply_service(service, SonosDevice.snapshot)
+        def restore_service(service):
+            """Restore a snapshot."""
+            _apply_service(service, SonosDevice.restore)
 
-    def restore_service(service):
-        """Restore a snapshot."""
-        _apply_service(service, SonosDevice.restore)
+        def set_timer_service(service):
+            """Set a timer."""
+            _apply_service(service, SonosDevice.set_timer, service.data[ATTR_SLEEP_TIME])
 
-    def set_timer_service(service):
-        """Set a timer."""
-        _apply_service(service, SonosDevice.set_timer, service.data[ATTR_SLEEP_TIME])
+        descriptions = load_yaml_config_file(
+            path.join(path.dirname(__file__), 'services.yaml'))
 
-    descriptions = load_yaml_config_file(
-        path.join(path.dirname(__file__), 'services.yaml'))
+        hass.services.register(DOMAIN, SERVICE_GROUP_PLAYERS,
+                               group_players_service,
+                               descriptions.get(SERVICE_GROUP_PLAYERS))
 
-    hass.services.register(DOMAIN, SERVICE_GROUP_PLAYERS,
-                           group_players_service,
-                           descriptions.get(SERVICE_GROUP_PLAYERS))
+        hass.services.register(DOMAIN, SERVICE_UNJOIN,
+                               unjoin_service,
+                               descriptions.get(SERVICE_UNJOIN))
 
-    hass.services.register(DOMAIN, SERVICE_UNJOIN,
-                           unjoin_service,
-                           descriptions.get(SERVICE_UNJOIN))
+        hass.services.register(DOMAIN, SERVICE_SNAPSHOT,
+                               snapshot_service,
+                               descriptions.get(SERVICE_SNAPSHOT))
 
-    hass.services.register(DOMAIN, SERVICE_SNAPSHOT,
-                           snapshot_service,
-                           descriptions.get(SERVICE_SNAPSHOT))
+        hass.services.register(DOMAIN, SERVICE_RESTORE,
+                               restore_service,
+                               descriptions.get(SERVICE_RESTORE))
 
-    hass.services.register(DOMAIN, SERVICE_RESTORE,
-                           restore_service,
-                           descriptions.get(SERVICE_RESTORE))
-
-    hass.services.register(DOMAIN, SERVICE_SET_TIMER,
-                           set_timer_service,
-                           descriptions.get(SERVICE_SET_TIMER),
-                           schema=SET_TIMER_SCHEMA)
+        hass.services.register(DOMAIN, SERVICE_SET_TIMER,
+                               set_timer_service,
+                               descriptions.get(SERVICE_SET_TIMER),
+                               schema=SONOS_SET_TIMER_SCHEMA)
 
     return True
 
